@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="edu.uw.jw21.yama">
-    
+
     <uses-permission android:name="android.permission.SEND_SMS" />
 
     <uses-permission android:name="android.permission.READ_SMS" />
@@ -25,12 +25,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".ComposeActivity"
-        />
+        <activity android:name=".ComposeActivity" />
+
         <receiver android:name=".MainActivity$SmsReceiver">
             <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
     </application>

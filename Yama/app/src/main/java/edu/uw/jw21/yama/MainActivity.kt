@@ -28,13 +28,13 @@ import android.net.Uri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.core.content.ContextCompat.getSystemService
 import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import android.provider.Telephony
 import java.text.SimpleDateFormat
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var smsRecyclerView: RecyclerView
-    private var messages = arrayOf<SmsMessage>()
     private val REQUEST_RECEIVE_SMS = 1
     private val REQUEST_READ_SMS = 1
 
@@ -43,11 +43,19 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        if (ActivityCompat.checkSelfPermission(this, RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                RECEIVE_SMS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(this, arrayOf(RECEIVE_SMS), REQUEST_RECEIVE_SMS)
         }
 
-        if (ActivityCompat.checkSelfPermission(this, READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                READ_SMS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(this, arrayOf(READ_SMS), REQUEST_READ_SMS)
         }
 
@@ -56,30 +64,30 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        val cursor = contentResolver.query(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(Telephony.Sms.Inbox.BODY, Telephony.Sms.Inbox.ADDRESS, Telephony.Sms.DATE_SENT),
+            // It's probably Telephony.SMS.Inbox.PERSON instead of ADDRESS but PERSON is null on the emulator.
+            null,
+            null,
+            Telephony.Sms.Inbox.DEFAULT_SORT_ORDER
+        )
 
-//        val projection = arrayOf(SmsMessage.ENCODING_16BIT.toString())
-//        val messagesUri = Uri.parse("content://sms/")
-//        val cursor = contentResolver.query(messagesUri, projection, null, null, null)
+        val messages = mutableListOf<SMS>()
 
-//            if ((cursor!!.moveToFirst())) {
-//                val phoneNumber = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
-//                number_edit.setText(phoneNumber)
-//            }
-//            println(messages[0].displayMessageBody.toString())
+        while (cursor!!.moveToNext()) {
+            var temp = SMS(
+                cursor.getString(0),
+                cursor.getString(1),
+                cursor.getLong(2)
+            )
+            messages.add(temp)
+        }
 
-        messages = SmsReceiver.messages
         setUpSMSRecyclerView(messages, this)
     }
 
-    override fun onResume() {
-        super.onResume()
-        messages = SmsReceiver.messages
-//        val smsRecyclerView.notifyDataSetChanged()
-        val recyclerAdapter = SMSAdapter(messages, this)
-        smsRecyclerView.adapter = recyclerAdapter
-    }
-
-    fun setUpSMSRecyclerView(messages: Array<SmsMessage>, context: Context) {
+    private fun setUpSMSRecyclerView(messages: List<SMS>, context: Context) {
         smsRecyclerView = findViewById(R.id.sms_recycler_view)
 
         val recyclerAdapter = SMSAdapter(messages, this)
@@ -105,18 +113,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    class SMSAdapter(private val smsList: Array<SmsMessage>, private val context: Context) : RecyclerView.Adapter<SMSAdapter.SMSViewHolder>() {
+    class SMS(val message: String, val author: String, val time: Long)
+
+    class SMSAdapter(private val smsList: List<SMS>, private val context: Context) :
+        RecyclerView.Adapter<SMSAdapter.SMSViewHolder>() {
 
         var sdf = SimpleDateFormat("M/d/yyyy h:mm a")
 
         override fun onBindViewHolder(smsViewHolder: SMSViewHolder, index: Int) {
-            smsViewHolder.message.text = smsList[index].messageBody
-            smsViewHolder.sender.text = smsList[index].originatingAddress
-            smsViewHolder.time.text = sdf.format(Date(smsList[index].timestampMillis))
+            smsViewHolder.message.text = smsList[index].message
+            smsViewHolder.sender.text = smsList[index].author
+            smsViewHolder.time.text = sdf.format(Date(smsList[index].time))
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SMSViewHolder {
-            return SMSViewHolder(LayoutInflater.from(context).inflate(R.layout.message_item, parent, false))
+            return SMSViewHolder(
+                LayoutInflater.from(context).inflate(
+                    R.layout.message_item,
+                    parent,
+                    false
+                )
+            )
         }
 
         override fun getItemCount(): Int {
@@ -131,11 +148,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     class SmsReceiver : BroadcastReceiver() {
-        companion object {
-            var messages = arrayOf<SmsMessage>()
-        }
+        var messages = arrayOf<SmsMessage>()
 
-        override fun onReceive(context: Context, intent: Intent ) {
+        override fun onReceive(context: Context, intent: Intent) {
             if (intent.action.equals("android.provider.Telephony.SMS_RECEIVED")) {
                 messages = getMessagesFromIntent(intent)
                 println(Date(messages[0].timestampMillis))

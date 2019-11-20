@@ -25,10 +25,13 @@ class ComposeActivity : AppCompatActivity() {
             findContact()
         }
         send_btn.setOnClickListener {
-            if (ActivityCompat.checkSelfPermission(this, SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    SEND_SMS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 ActivityCompat.requestPermissions(this, arrayOf(SEND_SMS), REQUEST_SEND_SMS)
-            }
-            else {
+            } else {
                 sendSMSMessage()
             }
         }
@@ -54,25 +57,40 @@ class ComposeActivity : AppCompatActivity() {
         val cursor = contentResolver.query(contactUri, projection, null, null, null)
 
         if ((cursor!!.moveToFirst())) {
-            val phoneNumber = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+            val phoneNumber =
+                cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
             number_edit.setText(phoneNumber)
         }
     }
 
     private fun sendSMSMessage() {
         val smsManager = SmsManager.getDefault()
-        smsManager.sendTextMessage(number_edit.text.toString(), null, text_edit.text.toString(), null, null)
+        smsManager.sendTextMessage(
+            number_edit.text.toString(),
+            null,
+            text_edit.text.toString(),
+            null,
+            null
+        )
         text_edit.setText("")
         Toast.makeText(applicationContext, "SMS sent.", Toast.LENGTH_LONG).show()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         when (requestCode) {
             REQUEST_SEND_SMS -> {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     sendSMSMessage()
                 } else {
-                    Toast.makeText(applicationContext, "Send failed, please try again.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        applicationContext,
+                        "Send failed, please try again.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
