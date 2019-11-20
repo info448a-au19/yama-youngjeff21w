@@ -3,34 +3,26 @@ package edu.uw.jw21.yama
 import android.Manifest.permission.READ_SMS
 import android.content.Intent
 import android.os.Bundle
-import com.google.android.material.snackbar.Snackbar
 import android.Manifest.permission.RECEIVE_SMS
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.jar.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
-import android.provider.ContactsContract
-import android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION
 import android.provider.Telephony.Sms.Intents.getMessagesFromIntent
 import android.telephony.SmsMessage
 import android.view.*
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.message_item.*
 import java.util.*
-import androidx.core.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import android.net.Uri
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.core.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
 import android.provider.Telephony
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.TaskStackBuilder
 import java.text.SimpleDateFormat
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -63,7 +55,10 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this@MainActivity, ComposeActivity::class.java)
             startActivity(intent)
         }
+    }
 
+    override fun onStart() {
+        super.onStart()
         val cursor = contentResolver.query(
             Telephony.Sms.Inbox.CONTENT_URI,
             arrayOf(Telephony.Sms.Inbox.BODY, Telephony.Sms.Inbox.ADDRESS, Telephony.Sms.DATE_SENT),
@@ -150,13 +145,34 @@ class MainActivity : AppCompatActivity() {
     class SmsReceiver : BroadcastReceiver() {
         var messages = arrayOf<SmsMessage>()
 
+
         override fun onReceive(context: Context, intent: Intent) {
+
+            val viewIntent = Intent(context, MainActivity::class.java)
+            val viewPendingIntent: PendingIntent? = TaskStackBuilder.create(context).run {
+                addNextIntentWithParentStack(viewIntent)
+                getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
+            val replyIntent = Intent(context, ComposeActivity::class.java)
+            val replyPendingIntent: PendingIntent? = TaskStackBuilder.create(context).run {
+                addNextIntentWithParentStack(replyIntent)
+                getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
+
             if (intent.action.equals("android.provider.Telephony.SMS_RECEIVED")) {
                 messages = getMessagesFromIntent(intent)
-                println(Date(messages[0].timestampMillis))
-                println(messages[0].displayMessageBody)
-                println(messages[0].displayOriginatingAddress)
+                val builder = NotificationCompat.Builder(context, "my_channel_id")
+                    .setSmallIcon(android.R.drawable.stat_notify_chat)
+                    .setContentTitle(messages[0].displayOriginatingAddress)
+                    .setAutoCancel(true)
+                    .setContentIntent(viewPendingIntent)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(messages[0].displayMessageBody))
+                    .addAction(android.R.drawable.ic_menu_view, "View", viewPendingIntent)
+                    .addAction(android.R.drawable.ic_menu_revert, "Reply", replyPendingIntent)
+
+                NotificationManagerCompat.from(context).notify(messages[0].timestampMillis.toInt(), builder.build())
             }
         }
     }
 }
+

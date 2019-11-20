@@ -9,4 +9,7 @@ https://www.youtube.com/watch?v=NLRSh-JTFrA
 Send SMS Message using SmSManager | Android Studio
 https://www.youtube.com/watch?v=Z28s39brZJM
 
+Start an Activity from a Notification
+https://developer.android.com/training/notify-user/navigation
+
 
